@@ -19,7 +19,7 @@ export function ToastContainer() {
   useEffect(() => {
     const handler = (t: ToastItem) => {
       setToasts(prev => [...prev, t]);
-      setTimeout(() => setToasts(prev => prev.filter(x => x.id !== t.id)), 3000);
+      setTimeout(() => setToasts(prev => prev.filter(x => x.id !== t.id)), 3200);
     };
     toastListeners.push(handler);
     return () => { toastListeners = toastListeners.filter(f => f !== handler); };
