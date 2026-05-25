@@ -235,6 +235,36 @@ export default function Products({ products, onRefresh }: Props) {
                   <input type="number" min={0} step={0.01} value={form.salePrice} onChange={e => setForm(f => ({ ...f, salePrice: Number(e.target.value) }))} />
                 </div>
               </div>
+              {(() => {
+                const purchase = form.purchasePrice || 0;
+                const sale = form.salePrice || 0;
+                const profit = sale - purchase;
+                const pct = purchase > 0 ? (profit / purchase) * 100 : 0;
+                const isPositive = profit >= 0;
+                return (
+                  <div style={{
+                    background: isPositive ? '#f0fdf4' : '#fff1f2',
+                    border: `1px solid ${isPositive ? '#bbf7d0' : '#fecdd3'}`,
+                    borderRadius: 8, padding: '10px 14px', display: 'flex',
+                    alignItems: 'center', justifyContent: 'space-between', marginBottom: 4
+                  }}>
+                    <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 600 }}>
+                      📊 Margem de Lucro
+                    </div>
+                    <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: isPositive ? '#16a34a' : '#c8102e' }}>
+                        {isPositive ? '+' : ''}{fmtR(profit)} por unidade
+                      </span>
+                      <span style={{
+                        fontSize: 12, fontWeight: 800, padding: '2px 10px', borderRadius: 99,
+                        background: isPositive ? '#16a34a' : '#c8102e', color: '#fff'
+                      }}>
+                        {isPositive ? '+' : ''}{pct.toFixed(1)}%
+                      </span>
+                    </div>
+                  </div>
+                );
+              })()}
               <div className="form-row">
                 <div className="form-group">
                   <label>Qtd. em Estoque</label>

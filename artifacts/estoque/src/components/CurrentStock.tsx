@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Product, getCategories } from '../types';
 import { getSuppliers } from '../store';
 
@@ -28,12 +29,22 @@ function getExpiryLabel(date: string) {
 }
 
 export default function CurrentStock({ products }: Props) {
+  const [search, setSearch] = useState('');
+  const [catFilter, setCatFilter] = useState('');
   const categories = getCategories();
   const suppliers = getSuppliers();
 
   const totalValue = products.reduce((s, p) => s + p.quantity * p.salePrice, 0);
   const totalPurchaseValue = products.reduce((s, p) => s + p.quantity * p.purchasePrice, 0);
   const margin = totalValue - totalPurchaseValue;
+
+  const filtered = products.filter(p => {
+    const q = search.toLowerCase();
+    const matchSearch = !q || p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q) ||
+      (suppliers.find(s => s.id === p.supplierId)?.name.toLowerCase().includes(q) ?? false);
+    const matchCat = catFilter ? p.category === catFilter : true;
+    return matchSearch && matchCat;
+  }).sort((a, b) => a.name.localeCompare(b.name));
 
   return (
     <div>
@@ -117,13 +128,25 @@ export default function CurrentStock({ products }: Props) {
             <div className="card-stripe" />
             <div>
               <div className="card-title">Estoque Atual — Lista Completa</div>
-              <div className="card-subtitle">Todos os produtos com saldo atual</div>
+              <div className="card-subtitle">{filtered.length} de {products.length} produto(s)</div>
             </div>
+          </div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <div className="search-bar" style={{ minWidth: 200 }}>
+              <span className="search-icon">🔍</span>
+              <input placeholder="Buscar produto..." value={search} onChange={e => setSearch(e.target.value)} type="search" />
+            </div>
+            <select value={catFilter} onChange={e => setCatFilter(e.target.value)} style={{ width: 170 }}>
+              <option value="">Todas as categorias</option>
+              {categories.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.label}</option>)}
+            </select>
           </div>
         </div>
         <div className="table-wrap">
           {products.length === 0 ? (
             <div className="empty-state"><div className="emoji">📦</div><p>Nenhum produto cadastrado</p></div>
+          ) : filtered.length === 0 ? (
+            <div className="empty-state"><div className="emoji">🔍</div><p>Nenhum produto encontrado para "{search || catFilter}"</p></div>
           ) : (
             <table>
               <thead>
@@ -141,8 +164,7 @@ export default function CurrentStock({ products }: Props) {
                 </tr>
               </thead>
               <tbody>
-                {products
-                  .sort((a, b) => a.name.localeCompare(b.name))
+                {filtered
                   .map(p => {
                     const cat = categories.find(c => c.id === p.category);
                     const supplier = suppliers.find(s => s.id === p.supplierId);
