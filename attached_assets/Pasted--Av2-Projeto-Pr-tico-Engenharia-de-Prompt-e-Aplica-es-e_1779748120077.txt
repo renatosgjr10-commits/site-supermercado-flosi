@@ -1,0 +1,94 @@
+# Av2 - Projeto Prático - Engenharia de Prompt e Aplicações em IA | Fundamentos de Inteligência Artificial
+
+## Descrição da atividade - Av2 (3 Pontos)
+
+Nesta etapa avaliativa, os grupos deverão desenvolver uma solução computacional original
+utilizando ao menos uma das ferramentas de IA apresentadas ao longo da disciplina,
+com aplicação de técnicas de engenharia de prompt na construção do projeto.
+
+A temática é livre — o grupo escolhe o problema que quer resolver e a ferramenta
+mais adequada para isso. O que será avaliado é a capacidade de usar a IA de forma
+intencional e produtiva, não a complexidade técnica do que foi desenvolvido.
+
+---
+
+## O que deve ser desenvolvido
+
+Cada grupo deve produzir uma **solução computacional** — aplicação, automação,
+protótipo, script ou qualquer outro recurso funcional — utilizando ao menos
+uma das ferramentas abaixo:
+
+- **Programação assistida por IA:** GitHub Copilot, Replit com Ghostwriter
+- **Documentação técnica:** GitHub Copilot
+- **Low-code / No-code:** Bubble, Make, Pipedream, n8n
+- **Vibe code:** Antigravity (integração de scripts com interfaces visuais)
+
+A solução deve ter sido construída com uso de engenharia de prompt,
+ou seja, com prompts elaborados e refinados pelo grupo para orientar a IA
+na geração do resultado esperado.
+
+---
+
+## Entrega obrigatória — vídeo explicativo
+
+Além da solução desenvolvida, cada grupo deve entregar um **vídeo editado
+com duração máxima de 5 minutos**, contemplando obrigatoriamente os seguintes elementos:
+
+1. **Apresentação da temática** — qual problema o projeto resolve e por que essa temática foi escolhida
+2. **Ferramenta utilizada e justificativa** — qual ferramenta foi usada e por que ela foi a escolha adequada para o projeto
+3. **Exemplo de prompt** — ao menos 1 prompt real utilizado na construção da solução, mostrando o que foi instruído e o resultado gerado
+4. **Demonstração da solução funcionando** — o produto ou resultado deve ser mostrado em funcionamento no vídeo
+
+O vídeo deve ser **editado** — não serão aceitas gravações brutas de tela sem edição
+ou áudio. A apresentação deve ser clara, organizada e respeitar o tempo máximo estipulado.
+
+> A entrega do vídeo é obrigatória para todos os grupos, independentemente da apresentação presencial.
+> 
+
+---
+
+## Organização dos grupos
+
+Os alunos devem se organizar em grupos de **4 a 6 integrantes**.
+Todos os membros do grupo são responsáveis pelo desenvolvimento do projeto
+e pela produção do vídeo explicativo.
+
+---
+
+## Apresentação presencial — seminário
+
+No dia marcado para o seminário, os grupos serão **sorteados** para realizarem
+suas apresentações ao vivo. A ordem de apresentação será definida pelo sorteio
+no início da aula.
+
+Em caso de **falta de tempo** para que todos os grupos apresentem presencialmente,
+os projetos remanescentes serão avaliados exclusivamente pelo vídeo entregue.
+
+> Por isso, o vídeo deve estar completo e contemplar todos os critérios — ele é
+o registro oficial do trabalho do grupo.
+> 
+
+---
+
+## Critérios de avaliação
+
+[Critérios de Avaliação - Apresentação de Projeto Prático](https://www.notion.so/Crit-rios-de-Avalia-o-Apresenta-o-de-Projeto-Pr-tico-358115cb767d80cc980fd2e53677df9f?pvs=21)
+
+A atividade vale **3,0 pontos**, distribuídos conforme os critérios abaixo:
+
+| Critério | Pontuação máxima |
+| --- | --- |
+| Uso efetivo da ferramenta de IA | 1,0 pt |
+| Qualidade da engenharia de prompt | 0,75 pt |
+| Funcionalidade da solução apresentada | 0,75 pt |
+| Clareza e organização da apresentação | 0,5 pt |
+| **Total** | **3,0 pts** |
+
+---
+
+## Observações:
+
+- Não é exigida explicação técnica do código gerado pela IA — o importante é saber usar a ferramenta e mostrar o que foi produzido, questionamentos podem ser feitos pelo professor.
+- A temática é completamente livre. Qualquer área de aplicação é válida.
+- Todos os integrantes do grupo devem aparecer e participar **ativamente** do vídeo.
+- Em caso de problema técnico durante a apresentação ao vivo, o vídeo entregue será usado como referência para a avaliação.
