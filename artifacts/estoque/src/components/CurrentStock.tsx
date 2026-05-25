@@ -28,6 +28,11 @@ function getExpiryLabel(date: string) {
   return null;
 }
 
+function calcMargin(purchase: number, sale: number) {
+  if (purchase <= 0) return 0;
+  return ((sale - purchase) / purchase) * 100;
+}
+
 export default function CurrentStock({ products }: Props) {
   const [search, setSearch] = useState('');
   const [catFilter, setCatFilter] = useState('');
@@ -45,6 +50,87 @@ export default function CurrentStock({ products }: Props) {
     const matchCat = catFilter ? p.category === catFilter : true;
     return matchSearch && matchCat;
   }).sort((a, b) => a.name.localeCompare(b.name));
+
+  function handlePrint() {
+    const now = new Date().toLocaleString('pt-BR');
+    const rows = filtered.map(p => {
+      const cat = categories.find(c => c.id === p.category);
+      const supplier = suppliers.find(s => s.id === p.supplierId);
+      const status = getStockStatus(p);
+      const mg = calcMargin(p.purchasePrice, p.salePrice);
+      const statusColor = status.cls === 'badge-danger' ? '#c8102e' : status.cls === 'badge-warning' ? '#d97706' : '#16a34a';
+      const mgColor = mg >= 0 ? '#16a34a' : '#c8102e';
+      return `
+        <tr>
+          <td style="font-family:monospace;font-size:11px;color:#666">${p.sku}</td>
+          <td style="font-weight:600">${p.name}</td>
+          <td>${cat?.label || p.category}</td>
+          <td>${supplier?.name || '—'}</td>
+          <td style="text-align:center;font-weight:700">${p.quantity} ${p.unit}</td>
+          <td>${fmtR(p.purchasePrice)}</td>
+          <td style="color:${mgColor};font-weight:700;text-align:center">${mg >= 0 ? '+' : ''}${mg.toFixed(1)}%</td>
+          <td style="font-weight:700;color:#003087">${fmtR(p.salePrice)}</td>
+          <td>${p.expirationDate ? new Date(p.expirationDate).toLocaleDateString('pt-BR') : '—'}</td>
+          <td style="color:${statusColor};font-weight:600">${status.label}</td>
+        </tr>`;
+    }).join('');
+
+    const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Estoque Atual — Supermercado Flosi</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; font-size: 12px; color: #1a1a2e; padding: 24px; }
+    .header { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; border-bottom: 3px solid #003087; padding-bottom: 14px; }
+    .header-text h1 { font-size: 18px; color: #003087; }
+    .header-text p { font-size: 11px; color: #666; margin-top: 3px; }
+    .summary { display: flex; gap: 20px; margin-bottom: 18px; flex-wrap: wrap; }
+    .summary-box { background: #f0f4ff; border: 1px solid #c7d6f7; border-radius: 6px; padding: 10px 16px; min-width: 140px; }
+    .summary-box .label { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: .5px; }
+    .summary-box .value { font-size: 15px; font-weight: 800; color: #003087; margin-top: 3px; }
+    table { width: 100%; border-collapse: collapse; }
+    th { background: #003087; color: #fff; padding: 8px 10px; text-align: left; font-size: 11px; }
+    td { padding: 7px 10px; border-bottom: 1px solid #e5e7eb; font-size: 11px; }
+    tr:nth-child(even) td { background: #f8fafc; }
+    .footer { margin-top: 18px; font-size: 10px; color: #999; text-align: right; border-top: 1px solid #e5e7eb; padding-top: 8px; }
+    @media print { body { padding: 12px; } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-text">
+      <h1>🏪 Supermercado Flosi — Estoque Atual</h1>
+      <p>Relatório gerado em ${now} &nbsp;|&nbsp; ${filtered.length} produto(s) listado(s) ${search || catFilter ? `&nbsp;|&nbsp; Filtro: "${search || catFilter}"` : ''}</p>
+    </div>
+  </div>
+  <div class="summary">
+    <div class="summary-box"><div class="label">Total de produtos</div><div class="value">${products.length}</div></div>
+    <div class="summary-box"><div class="label">Valor de venda</div><div class="value">${fmtR(totalValue)}</div></div>
+    <div class="summary-box"><div class="label">Custo de compra</div><div class="value">${fmtR(totalPurchaseValue)}</div></div>
+    <div class="summary-box"><div class="label">Margem potencial</div><div class="value" style="color:#16a34a">${fmtR(margin)}</div></div>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Código</th><th>Produto</th><th>Categoria</th><th>Fornecedor</th>
+        <th>Qtd.</th><th>P. Compra</th><th>Margem</th><th>P. Venda</th><th>Validade</th><th>Status</th>
+      </tr>
+    </thead>
+    <tbody>${rows}</tbody>
+  </table>
+  <div class="footer">Supermercado Flosi © ${new Date().getFullYear()} — Documento gerado pelo Sistema de Gerenciamento de Estoque</div>
+</body>
+</html>`;
+
+    const win = window.open('', '_blank');
+    if (!win) return;
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    setTimeout(() => win.print(), 400);
+  }
 
   return (
     <div>
@@ -131,7 +217,7 @@ export default function CurrentStock({ products }: Props) {
               <div className="card-subtitle">{filtered.length} de {products.length} produto(s)</div>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <div className="search-bar" style={{ minWidth: 200 }}>
               <span className="search-icon">🔍</span>
               <input placeholder="Buscar produto..." value={search} onChange={e => setSearch(e.target.value)} type="search" />
@@ -140,6 +226,9 @@ export default function CurrentStock({ products }: Props) {
               <option value="">Todas as categorias</option>
               {categories.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.label}</option>)}
             </select>
+            <button className="btn btn-secondary btn-sm" onClick={handlePrint} title="Exportar PDF">
+              🖨️ Exportar PDF
+            </button>
           </div>
         </div>
         <div className="table-wrap">
@@ -158,50 +247,65 @@ export default function CurrentStock({ products }: Props) {
                   <th>Qtd. Atual</th>
                   <th>Qtd. Mín.</th>
                   <th>P. Compra</th>
+                  <th>Margem</th>
                   <th>P. Venda</th>
                   <th>Validade</th>
                   <th>Status</th>
                 </tr>
               </thead>
               <tbody>
-                {filtered
-                  .map(p => {
-                    const cat = categories.find(c => c.id === p.category);
-                    const supplier = suppliers.find(s => s.id === p.supplierId);
-                    const status = getStockStatus(p);
-                    const pct = p.minQuantity > 0 ? Math.min(100, (p.quantity / (p.minQuantity * 3)) * 100) : 100;
-                    const expiryInfo = getExpiryLabel(p.expirationDate);
-                    return (
-                      <tr key={p.id}>
-                        <td style={{ fontFamily: 'monospace', fontSize: 12, color: 'var(--text-muted)' }}>{p.sku}</td>
-                        <td style={{ fontWeight: 600 }}>{p.name}</td>
-                        <td>
-                          <span className="category-chip">{cat?.emoji || '📦'} {cat?.label || p.category}</span>
-                        </td>
-                        <td style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{supplier?.name || '—'}</td>
-                        <td>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                            <span style={{ fontWeight: 700, color: p.quantity === 0 ? 'var(--red)' : 'inherit' }}>{p.quantity} <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>{p.unit}</span></span>
-                            <div className="stock-bar" style={{ width: 70 }}>
-                              <div className="stock-bar-fill" style={{ width: `${pct}%`, background: getBarColor(p) }} />
-                            </div>
+                {filtered.map(p => {
+                  const cat = categories.find(c => c.id === p.category);
+                  const supplier = suppliers.find(s => s.id === p.supplierId);
+                  const status = getStockStatus(p);
+                  const pct = p.minQuantity > 0 ? Math.min(100, (p.quantity / (p.minQuantity * 3)) * 100) : 100;
+                  const expiryInfo = getExpiryLabel(p.expirationDate);
+                  const mg = calcMargin(p.purchasePrice, p.salePrice);
+                  const isPos = mg >= 0;
+                  return (
+                    <tr key={p.id}>
+                      <td style={{ fontFamily: 'monospace', fontSize: 12, color: 'var(--text-muted)' }}>{p.sku}</td>
+                      <td style={{ fontWeight: 600 }}>{p.name}</td>
+                      <td>
+                        <span className="category-chip">{cat?.emoji || '📦'} {cat?.label || p.category}</span>
+                      </td>
+                      <td style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{supplier?.name || '—'}</td>
+                      <td>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                          <span style={{ fontWeight: 700, color: p.quantity === 0 ? 'var(--red)' : 'inherit' }}>{p.quantity} <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>{p.unit}</span></span>
+                          <div className="stock-bar" style={{ width: 70 }}>
+                            <div className="stock-bar-fill" style={{ width: `${pct}%`, background: getBarColor(p) }} />
                           </div>
-                        </td>
-                        <td style={{ color: 'var(--text-muted)' }}>{p.minQuantity} {p.unit}</td>
-                        <td style={{ fontSize: 13 }}>{fmtR(p.purchasePrice)}</td>
-                        <td style={{ fontWeight: 700, color: 'var(--navy)' }}>{fmtR(p.salePrice)}</td>
-                        <td>
-                          {p.expirationDate
-                            ? <span>
-                                <span style={{ fontSize: 12 }}>{new Date(p.expirationDate).toLocaleDateString('pt-BR')}</span>
-                                {expiryInfo && <span className={expiryInfo.cls} style={{ fontSize: 10, marginLeft: 4 }}>({expiryInfo.label})</span>}
-                              </span>
-                            : <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>—</span>}
-                        </td>
-                        <td><span className={`badge ${status.cls}`}>{status.label}</span></td>
-                      </tr>
-                    );
-                  })}
+                        </div>
+                      </td>
+                      <td style={{ color: 'var(--text-muted)' }}>{p.minQuantity} {p.unit}</td>
+                      <td style={{ fontSize: 13 }}>{fmtR(p.purchasePrice)}</td>
+                      <td>
+                        <span style={{
+                          display: 'inline-block', fontSize: 11, fontWeight: 800,
+                          padding: '3px 8px', borderRadius: 99,
+                          background: isPos ? '#dcfce7' : '#fee2e2',
+                          color: isPos ? '#16a34a' : '#c8102e'
+                        }}>
+                          {isPos ? '+' : ''}{mg.toFixed(1)}%
+                        </span>
+                        <div style={{ fontSize: 10, color: isPos ? '#16a34a' : '#c8102e', marginTop: 2 }}>
+                          {isPos ? '+' : ''}{fmtR(p.salePrice - p.purchasePrice)}/un
+                        </div>
+                      </td>
+                      <td style={{ fontWeight: 700, color: 'var(--navy)' }}>{fmtR(p.salePrice)}</td>
+                      <td>
+                        {p.expirationDate
+                          ? <span>
+                              <span style={{ fontSize: 12 }}>{new Date(p.expirationDate).toLocaleDateString('pt-BR')}</span>
+                              {expiryInfo && <span className={expiryInfo.cls} style={{ fontSize: 10, marginLeft: 4 }}>({expiryInfo.label})</span>}
+                            </span>
+                          : <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>—</span>}
+                      </td>
+                      <td><span className={`badge ${status.cls}`}>{status.label}</span></td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}

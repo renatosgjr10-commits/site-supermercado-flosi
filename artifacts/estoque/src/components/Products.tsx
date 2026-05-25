@@ -16,6 +16,11 @@ function getStockStatus(p: Product) {
 
 function fmtR(v: number) { return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }); }
 
+function calcMargin(purchase: number, sale: number) {
+  if (purchase <= 0) return 0;
+  return ((sale - purchase) / purchase) * 100;
+}
+
 function getBarColor(p: Product) {
   if (p.quantity === 0) return '#c8102e';
   if (p.quantity <= p.minQuantity) return '#d97706';
@@ -40,6 +45,7 @@ export default function Products({ products, onRefresh }: Props) {
   const [catFilter, setCatFilter] = useState('');
   const [modal, setModal] = useState<'add' | 'edit' | 'categories' | null>(null);
   const [form, setForm] = useState({ ...EMPTY_FORM });
+  const [marginPct, setMarginPct] = useState(0);
   const [editId, setEditId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [categories, setCategories] = useState(getCategories);
@@ -56,6 +62,7 @@ export default function Products({ products, onRefresh }: Props) {
 
   function openAdd() {
     setForm({ ...EMPTY_FORM, category: categories[0]?.id || 'outros' });
+    setMarginPct(0);
     setEditId(null); setModal('add');
   }
 
@@ -65,7 +72,24 @@ export default function Products({ products, onRefresh }: Props) {
       purchasePrice: p.purchasePrice, salePrice: p.salePrice, unit: p.unit,
       supplierId: p.supplierId, expirationDate: p.expirationDate
     });
+    setMarginPct(calcMargin(p.purchasePrice, p.salePrice));
     setEditId(p.id); setModal('edit');
+  }
+
+  function handlePurchasePriceChange(val: number) {
+    const newSale = parseFloat((val * (1 + marginPct / 100)).toFixed(2));
+    setForm(f => ({ ...f, purchasePrice: val, salePrice: newSale }));
+  }
+
+  function handleSalePriceChange(val: number) {
+    setMarginPct(calcMargin(form.purchasePrice, val));
+    setForm(f => ({ ...f, salePrice: val }));
+  }
+
+  function handleMarginPctChange(val: number) {
+    setMarginPct(val);
+    const newSale = parseFloat((form.purchasePrice * (1 + val / 100)).toFixed(2));
+    setForm(f => ({ ...f, salePrice: newSale }));
   }
 
   function handleSubmit() {
@@ -96,6 +120,9 @@ export default function Products({ products, onRefresh }: Props) {
     setCategories(updated);
     saveCategories(updated);
   }
+
+  const profit = form.salePrice - form.purchasePrice;
+  const isPositiveMargin = profit >= 0;
 
   return (
     <div>
@@ -142,8 +169,9 @@ export default function Products({ products, onRefresh }: Props) {
                   <th>Produto / Código</th>
                   <th>Categoria</th>
                   <th>Estoque</th>
-                  <th>Preço Compra</th>
-                  <th>Preço Venda</th>
+                  <th>P. Compra</th>
+                  <th>Margem</th>
+                  <th>P. Venda</th>
                   <th>Validade</th>
                   <th>Situação</th>
                   <th style={{ width: 90 }}>Ações</th>
@@ -156,6 +184,8 @@ export default function Products({ products, onRefresh }: Props) {
                   const cat = categories.find(c => c.id === p.category);
                   const expiryClass = getExpiryClass(p.expirationDate);
                   const supplier = suppliers.find(s => s.id === p.supplierId);
+                  const margin = calcMargin(p.purchasePrice, p.salePrice);
+                  const isPos = margin >= 0;
                   return (
                     <tr key={p.id}>
                       <td>
@@ -174,6 +204,19 @@ export default function Products({ products, onRefresh }: Props) {
                         <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2 }}>mín: {p.minQuantity}</div>
                       </td>
                       <td style={{ fontSize: 13 }}>{fmtR(p.purchasePrice)}</td>
+                      <td>
+                        <span style={{
+                          display: 'inline-block', fontSize: 11, fontWeight: 800,
+                          padding: '3px 8px', borderRadius: 99,
+                          background: isPos ? '#dcfce7' : '#fee2e2',
+                          color: isPos ? '#16a34a' : '#c8102e'
+                        }}>
+                          {isPos ? '+' : ''}{margin.toFixed(1)}%
+                        </span>
+                        <div style={{ fontSize: 10, color: isPos ? '#16a34a' : '#c8102e', marginTop: 2 }}>
+                          {isPos ? '+' : ''}{fmtR(p.salePrice - p.purchasePrice)}/un
+                        </div>
+                      </td>
                       <td style={{ fontWeight: 700, color: 'var(--navy)' }}>{fmtR(p.salePrice)}</td>
                       <td>
                         {p.expirationDate
@@ -225,46 +268,57 @@ export default function Products({ products, onRefresh }: Props) {
                   </select>
                 </div>
               </div>
+
+              {/* Preços com margem editável */}
               <div className="form-row">
                 <div className="form-group">
                   <label>Preço de Compra (R$)</label>
-                  <input type="number" min={0} step={0.01} value={form.purchasePrice} onChange={e => setForm(f => ({ ...f, purchasePrice: Number(e.target.value) }))} />
+                  <input type="number" min={0} step={0.01} value={form.purchasePrice}
+                    onChange={e => handlePurchasePriceChange(Number(e.target.value))} />
                 </div>
                 <div className="form-group">
                   <label>Preço de Venda (R$)</label>
-                  <input type="number" min={0} step={0.01} value={form.salePrice} onChange={e => setForm(f => ({ ...f, salePrice: Number(e.target.value) }))} />
+                  <input type="number" min={0} step={0.01} value={form.salePrice}
+                    onChange={e => handleSalePriceChange(Number(e.target.value))} />
                 </div>
               </div>
-              {(() => {
-                const purchase = form.purchasePrice || 0;
-                const sale = form.salePrice || 0;
-                const profit = sale - purchase;
-                const pct = purchase > 0 ? (profit / purchase) * 100 : 0;
-                const isPositive = profit >= 0;
-                return (
-                  <div style={{
-                    background: isPositive ? '#f0fdf4' : '#fff1f2',
-                    border: `1px solid ${isPositive ? '#bbf7d0' : '#fecdd3'}`,
-                    borderRadius: 8, padding: '10px 14px', display: 'flex',
-                    alignItems: 'center', justifyContent: 'space-between', marginBottom: 4
-                  }}>
-                    <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 600 }}>
-                      📊 Margem de Lucro
-                    </div>
-                    <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: isPositive ? '#16a34a' : '#c8102e' }}>
-                        {isPositive ? '+' : ''}{fmtR(profit)} por unidade
-                      </span>
-                      <span style={{
-                        fontSize: 12, fontWeight: 800, padding: '2px 10px', borderRadius: 99,
-                        background: isPositive ? '#16a34a' : '#c8102e', color: '#fff'
-                      }}>
-                        {isPositive ? '+' : ''}{pct.toFixed(1)}%
-                      </span>
+
+              {/* Margem editável */}
+              <div style={{
+                background: isPositiveMargin ? '#f0fdf4' : '#fff1f2',
+                border: `1px solid ${isPositiveMargin ? '#bbf7d0' : '#fecdd3'}`,
+                borderRadius: 8, padding: '12px 16px', marginBottom: 4
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>
+                    📊 Margem de Lucro
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: isPositiveMargin ? '#16a34a' : '#c8102e' }}>
+                      {isPositiveMargin ? '+' : ''}{fmtR(profit)} por unidade
+                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <input
+                        type="number"
+                        step={0.1}
+                        value={parseFloat(marginPct.toFixed(2))}
+                        onChange={e => handleMarginPctChange(Number(e.target.value))}
+                        style={{
+                          width: 72, textAlign: 'center', fontWeight: 800, fontSize: 14,
+                          border: `1.5px solid ${isPositiveMargin ? '#16a34a' : '#c8102e'}`,
+                          borderRadius: 6, padding: '3px 6px', color: isPositiveMargin ? '#16a34a' : '#c8102e',
+                          background: isPositiveMargin ? '#dcfce7' : '#fee2e2'
+                        }}
+                      />
+                      <span style={{ fontWeight: 700, color: isPositiveMargin ? '#16a34a' : '#c8102e', fontSize: 14 }}>%</span>
                     </div>
                   </div>
-                );
-              })()}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
+                  💡 Altere a margem (%) para recalcular o preço de venda automaticamente
+                </div>
+              </div>
+
               <div className="form-row">
                 <div className="form-group">
                   <label>Qtd. em Estoque</label>
@@ -326,10 +380,7 @@ export default function Products({ products, onRefresh }: Props) {
                   <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderBottom: '1px solid var(--card-border)' }}>
                     <span style={{ fontSize: 20 }}>{c.emoji}</span>
                     <span style={{ flex: 1, fontWeight: 500, fontSize: 14 }}>{c.label}</span>
-                    <button
-                      className="btn btn-danger btn-sm"
-                      onClick={() => removeCategory(c.id)}
-                    >Remover</button>
+                    <button className="btn btn-danger btn-sm" onClick={() => removeCategory(c.id)}>Remover</button>
                   </div>
                 ))}
               </div>
